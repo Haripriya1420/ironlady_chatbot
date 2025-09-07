@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Iron Lady FAQ Chatbot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 24px; background: #f7f7f8; }
+    .wrap { max-width: 720px; margin: 0 auto; background: #fff; padding: 24px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    h1 { margin-top: 0; font-size: 22px; text-align: center; }
+    #chat { height: 380px; overflow-y: auto; border: 1px solid #eee; border-radius: 12px; padding: 12px; background: #fafafa; display: flex; flex-direction: column; }
+    .msg { margin: 8px 0; padding: 8px 12px; border-radius: 12px; display: inline-block; max-width: 90%; word-wrap: break-word; }
+    .user { background: #e8f0ff; align-self: flex-end; }
+    .bot { background: #eaf7ea; align-self: flex-start; }
+    .ai-label { font-size: 10px; color: #555; margin-left: 6px; }
+    .row { display: flex; gap: 8px; margin-top: 12px; }
+    input { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; }
+    button { padding: 10px 14px; border: 0; border-radius: 10px; cursor: pointer; background: black; color: white; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Iron Lady FAQ Chatbot</h1>
+    <div id="chat"></div>
+    <div class="row">
+      <input id="inp" placeholder="Ask about duration, mode, certificate, mentors, fees, eligibility..." />
+      <button id="send">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById("chat");
+    const inp = document.getElementById("inp");
+    const send = document.getElementById("send");
+
+    function addMsg(text, who, isAI = false) {
+      const div = document.createElement("div");
+      div.className = "msg " + (who === "user" ? "user" : "bot");
+      if(isAI) {
+        div.innerHTML = text + ' <span class="ai-label">(AI)</span>';
+      } else {
+        div.textContent = text;
+      }
+      chatBox.appendChild(div);
+      chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: "smooth" });
+    }
+
+    async function sendMsg() {
+      const text = inp.value.trim();
+      if (!text) return;
+      addMsg(text, "user");
+      inp.value = "";
+
+      // Typing indicator
+      const typingDiv = document.createElement("div");
+      typingDiv.className = "msg bot";
+      typingDiv.textContent = "Typing...";
+      chatBox.appendChild(typingDiv);
+      chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: "smooth" });
+
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        // Remove typing indicator
+        typingDiv.remove();
+
+        // Check if AI fallback was used
+        const isAI = data.replySource === "AI"; // send this from Flask if possible
+        addMsg(data.reply, "bot", isAI);
+
+      } catch (err) {
+        typingDiv.remove();
+        addMsg("Oops! Something went wrong. Please try again.", "bot");
+        console.error(err);
+      }
+    }
+
+    send.addEventListener("click", sendMsg);
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMsg(); });
+  </script>
+</body>
+</html>
