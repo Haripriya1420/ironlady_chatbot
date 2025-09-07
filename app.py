@@ -4,7 +4,7 @@ from transformers import pipeline
 
 app = Flask(__name__)
 
-generator = pipeline("text-generation", model="gpt2")  # GPT-2 is free
+generator = pipeline("text-generation", model="gpt2")  
 
 # Predefined FAQs
 FAQS = {
